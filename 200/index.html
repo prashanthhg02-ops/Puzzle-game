@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f3ee">
+  <title>Tile Quest — Sliding Puzzle</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #202821;
+      background: #f5f3ee;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      --green: #3c7556;
+      --green-dark: #2d5b41;
+      --ink: #202821;
+      --muted: #747b72;
+      --surface: #fffefa;
+      --line: #e7e5dd;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      padding: 36px 20px;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(ellipse at 15% 12%, rgba(214, 226, 203, .48), transparent 36%),
+        radial-gradient(ellipse at 88% 86%, rgba(239, 224, 198, .42), transparent 34%),
+        #f5f3ee;
+    }
+
+    button, select { font: inherit; }
+    button:focus-visible, select:focus-visible {
+      outline: 3px solid #87b996;
+      outline-offset: 3px;
+    }
+
+    .game {
+      width: min(100%, 510px);
+      padding: clamp(22px, 6vw, 38px);
+      border: 1px solid rgba(255, 255, 255, .9);
+      border-radius: 28px;
+      background: rgba(255, 254, 250, .92);
+      box-shadow: 0 24px 70px rgba(57, 64, 50, .12), 0 2px 8px rgba(57, 64, 50, .04);
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--green);
+      font-size: .72rem;
+      font-weight: 800;
+      letter-spacing: .17em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(2.2rem, 9vw, 3.2rem);
+      font-weight: 600;
+      letter-spacing: -.055em;
+      line-height: 1;
+    }
+
+    .intro {
+      margin: 12px 0 25px;
+      color: var(--muted);
+      font-size: .94rem;
+      line-height: 1.55;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .difficulty-label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: .72rem;
+      font-weight: 700;
+    }
+
+    select, .shuffle {
+      height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface);
+      color: var(--ink);
+    }
+
+    select { padding: 0 32px 0 12px; cursor: pointer; }
+
+    .shuffle {
+      padding: 0 16px;
+      border-color: var(--green);
+      background: var(--green);
+      color: white;
+      font-size: .85rem;
+      font-weight: 750;
+      cursor: pointer;
+      transition: background .18s, transform .18s;
+    }
+
+    .shuffle:hover { background: var(--green-dark); transform: translateY(-1px); }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .stat {
+      padding: 11px 14px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: #fbfaf6;
+    }
+
+    .stat-label {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--muted);
+      font-size: .66rem;
+      font-weight: 750;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .stat-value { font-size: 1.12rem; font-weight: 750; font-variant-numeric: tabular-nums; }
+
+    .board {
+      display: grid;
+      gap: 8px;
+      width: 100%;
+      aspect-ratio: 1;
+      padding: 10px;
+      border: 1px solid #e9e8df;
+      border-radius: 19px;
+      background: #eeeee7;
+      touch-action: manipulation;
+    }
+
+    .tile {
+      display: grid;
+      place-items: center;
+      min-width: 0;
+      padding: 0;
+      border: 1px solid rgba(255, 255, 255, .7);
+      border-radius: 12px;
+      background: linear-gradient(145deg, #6e9b79, #477956);
+      box-shadow: 0 3px 0 #386747, 0 5px 9px rgba(43, 78, 53, .14);
+      color: #fffefa;
+      font-size: clamp(1.1rem, 6vw, 1.8rem);
+      font-weight: 750;
+      cursor: pointer;
+      transition: transform .12s ease, filter .12s ease;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .tile:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-2px); }
+    .tile:active:not(:disabled) { transform: translateY(1px); }
+    .tile:disabled { cursor: default; }
+    .tile.empty { visibility: hidden; }
+
+    .message {
+      min-height: 26px;
+      margin: 14px 0 0;
+      color: var(--green-dark);
+      font-size: .88rem;
+      font-weight: 650;
+      text-align: center;
+    }
+
+    .hint {
+      margin: 9px 0 0;
+      color: #898d84;
+      font-size: .74rem;
+      line-height: 1.45;
+      text-align: center;
+    }
+
+    @media (max-width: 420px) {
+      body { padding: 16px 12px; }
+      .game { border-radius: 22px; }
+      .board { gap: 6px; padding: 8px; }
+      .tile { border-radius: 9px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="game">
+    <p class="eyebrow">A little brain break</p>
+    <h1>Tile Quest</h1>
+    <p class="intro">Put every number back in order. Slide a tile into the empty space to move it.</p>
+
+    <div class="toolbar">
+      <label class="difficulty-label" for="difficulty">
+        Puzzle size
+        <select id="difficulty" aria-label="Puzzle size">
+          <option value="3">Easy · 3 × 3</option>
+          <option value="4" selected>Classic · 4 × 4</option>
+          <option value="5">Expert · 5 × 5</option>
+        </select>
+      </label>
+      <button class="shuffle" id="shuffle" type="button">New puzzle</button>
+    </div>
+
+    <section class="stats" aria-label="Game statistics">
+      <div class="stat"><span class="stat-label">Moves</span><span class="stat-value" id="moves">0</span></div>
+      <div class="stat"><span class="stat-label">Time</span><span class="stat-value" id="time">00:00</span></div>
+    </section>
+
+    <div class="board" id="board" role="group" aria-label="Sliding puzzle board"></div>
+    <p class="message" id="message" role="status" aria-live="polite">Ready when you are — good luck!</p>
+    <p class="hint">Tip: use the arrow keys, or tap a tile next to the empty space.</p>
+  </main>
+
+  <script>
+    const boardElement = document.getElementById("board");
+    const difficultyElement = document.getElementById("difficulty");
+    const movesElement = document.getElementById("moves");
+    const timeElement = document.getElementById("time");
+    const messageElement = document.getElementById("message");
+    const shuffleButton = document.getElementById("shuffle");
+
+    let size = Number(difficultyElement.value);
+    let tiles = [];
+    let moves = 0;
+    let startedAt = null;
+    let timerId = null;
+    let finished = false;
+
+    function formatTime(totalSeconds) {
+      const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
+      const seconds = (totalSeconds % 60).toString().padStart(2, "0");
+      return `${minutes}:${seconds}`;
+    }
+
+    function updateTimer() {
+      if (startedAt !== null) {
+        timeElement.textContent = formatTime(Math.floor((Date.now() - startedAt) / 1000));
+      }
+    }
+
+    function renderBoard() {
+      boardElement.replaceChildren();
+      boardElement.style.gridTemplateColumns = `repeat(${size}, minmax(0, 1fr))`;
+      boardElement.setAttribute("aria-label", `${size} by ${size} sliding puzzle board`);
+
+      tiles.forEach((value, index) => {
+        const tile = document.createElement("button");
+        tile.type = "button";
+        tile.className = value === 0 ? "tile empty" : "tile";
+        tile.textContent = value === 0 ? "" : String(value);
+        tile.disabled = finished || value === 0 || !isAdjacent(index, tiles.indexOf(0));
+        tile.setAttribute("aria-label", value === 0 ? "Empty space" : `Move tile ${value}`);
+        tile.addEventListener("click", () => moveTile(index));
+        boardElement.append(tile);
+      });
+    }
+
+    function isAdjacent(first, second) {
+      const rowDifference = Math.abs(Math.floor(first / size) - Math.floor(second / size));
+      const columnDifference = Math.abs((first % size) - (second % size));
+      return rowDifference + columnDifference === 1;
+    }
+
+    function moveTile(index) {
+      if (finished || !isAdjacent(index, tiles.indexOf(0))) return;
+
+      if (startedAt === null) {
+        startedAt = Date.now();
+        timerId = window.setInterval(updateTimer, 250);
+      }
+
+      const emptyIndex = tiles.indexOf(0);
+      [tiles[index], tiles[emptyIndex]] = [tiles[emptyIndex], tiles[index]];
+      moves += 1;
+      movesElement.textContent = String(moves);
+
+      if (isSolved()) {
+        finished = true;
+        window.clearInterval(timerId);
+        updateTimer();
+        messageElement.textContent = `Puzzle solved in ${moves} moves and ${timeElement.textContent}. Lovely work!`;
+      }
+
+      renderBoard();
+    }
+
+    function isSolved() {
+      return tiles.every((value, index) => value === (index === tiles.length - 1 ? 0 : index + 1));
+    }
+
+    function startNewGame() {
+      if (timerId !== null) window.clearInterval(timerId);
+      size = Number(difficultyElement.value);
+      tiles = Array.from({ length: size * size }, (_, index) => (index + 1) % (size * size));
+      let previousEmpty = -1;
+
+      // Scramble with legal moves so every generated puzzle remains solvable.
+      for (let step = 0; step < size * size * 24; step += 1) {
+        const emptyIndex = tiles.indexOf(0);
+        const neighbors = [];
+        for (let index = 0; index < tiles.length; index += 1) {
+          if (index !== previousEmpty && isAdjacent(index, emptyIndex)) neighbors.push(index);
+        }
+        const nextIndex = neighbors[Math.floor(Math.random() * neighbors.length)];
+        [tiles[emptyIndex], tiles[nextIndex]] = [tiles[nextIndex], tiles[emptyIndex]];
+        previousEmpty = emptyIndex;
+      }
+
+      if (isSolved()) {
+        const emptyIndex = tiles.indexOf(0);
+        const neighborIndex = emptyIndex === 0 ? 1 : emptyIndex - 1;
+        [tiles[emptyIndex], tiles[neighborIndex]] = [tiles[neighborIndex], tiles[emptyIndex]];
+      }
+
+      moves = 0;
+      startedAt = null;
+      timerId = null;
+      finished = false;
+      movesElement.textContent = "0";
+      timeElement.textContent = "00:00";
+      messageElement.textContent = "Ready when you are — good luck!";
+      renderBoard();
+    }
+
+    function handleKeydown(event) {
+      const directions = {
+        ArrowUp: size,
+        ArrowDown: -size,
+        ArrowLeft: 1,
+        ArrowRight: -1
+      };
+      const delta = directions[event.key];
+      if (delta === undefined || finished) return;
+
+      const emptyIndex = tiles.indexOf(0);
+      const tileIndex = emptyIndex + delta;
+      if (tileIndex < 0 || tileIndex >= tiles.length || !isAdjacent(tileIndex, emptyIndex)) return;
+      event.preventDefault();
+      moveTile(tileIndex);
+    }
+
+    shuffleButton.addEventListener("click", startNewGame);
+    difficultyElement.addEventListener("change", startNewGame);
+    document.addEventListener("keydown", handleKeydown);
+    startNewGame();
+  </script>
+</body>
+</html>
